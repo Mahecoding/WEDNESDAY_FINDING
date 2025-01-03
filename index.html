@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEDNESDAY FINDER</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f8fb;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+            font-size: 24px;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            width: 70%;
+            max-width: 400px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 5px;
+            background-color: #1a73e8;
+            color: white;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #166bb2;
+        }
+
+        .cancel-btn {
+            background-color: red;
+        }
+
+        .cancel-btn:hover {
+            background-color: #d9534f;
+        }
+
+        .save-btn {
+            background-color: green;
+        }
+
+        .save-btn:hover {
+            background-color: #5bc0de;
+        }
+
+        .table-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #1a73e8;
+            color: white;
+        }
+
+        td {
+            background-color: #f9f9f9;
+        }
+
+        .actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .actions button {
+            margin-right: 10px;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>WEDNESDAY FINDER</h1>
+        <div class="input-section">
+            <input type="text" id="manualDate" placeholder="Enter a date (DD-MM-YYYY)">
+            <button onclick="findDates()">Calculate</button>
+            <span class="error" id="error"></span>
+        </div>
+
+        <div class="table-container">
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>Week</th>
+                        <th>Calculated Date</th>
+                        <th>Days from Input</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="actions">
+            <button class="save-btn" onclick="saveToHistory()">Save</button>
+            <button class="cancel-btn" onclick="clearInput()">Cancel</button>
+            <button onclick="viewHistory()">View History</button>
+        </div>
+
+        <div id="historyContainer" style="display: none;">
+            <table id="historyTable" style="width: 100%; margin-top: 20px;">
+                <thead>
+                    <tr>
+                        <th>Serial No</th>
+                        <th>Entered Date</th>
+                        <th>6th Week</th>
+                        <th>10th Week</th>
+                        <th>14th Week</th>
+                        <th>9th Month</th>
+                        <th>1.5 Years</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div class="actions">
+                <button class="export-btn" onclick="exportToExcel()">Export to Excel</button>
+                <button class="clear-history-btn" onclick="clearHistory()">Clear History</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+    <script>
+        let history = [];
+
+        function findDates() {
+            const input = document.getElementById('manualDate').value;
+            const errorSpan = document.getElementById('error');
+            const resultsTable = document.querySelector('#resultsTable tbody');
+            const tableContainer = document.querySelector('.table-container');
+            const dateRegex = /^\d{2}-\d{2}-\d{4}$/;
+
+            if (!dateRegex.test(input)) {
+                errorSpan.textContent = 'Please enter a valid date in DD-MM-YYYY format.';
+                return;
+            } else {
+                errorSpan.textContent = '';
+            }
+
+            const [day, month, year] = input.split('-').map(Number);
+            const inputDate = new Date(year, month - 1, day);
+
+            if (isNaN(inputDate)) {
+                errorSpan.textContent = 'Invalid date! Please check your input.';
+                return;
+            }
+
+            const data = [];
+            const weeks = [6, 10, 14];
+            weeks.forEach(week => {
+                const targetDate = new Date(inputDate);
+                targetDate.setDate(inputDate.getDate() + week * 7);
+                while (targetDate.getDay() !== 3) {
+                    targetDate.setDate(targetDate.getDate() + 1);
+                }
+                data.push({
+                    week: `${week}th Week`,
+                    date: targetDate.toLocaleDateString('en-GB'),
+                    days: `${week * 7} days`
+                });
+            });
+
+            const nineMonthDate = new Date(inputDate);
+            nineMonthDate.setMonth(inputDate.getMonth() + 9);
+            while (nineMonthDate.getDay() !== 3) {
+                nineMonthDate.setDate(nineMonthDate.getDate() + 1);
+            }
+            data.push({
+                week: '9th Month',
+                date: nineMonthDate.toLocaleDateString('en-GB'),
+                days: `${Math.round((nineMonthDate - inputDate) / (1000 * 60 * 60 * 24))} days`
+            });
+
+            const oneAndHalfYearDate = new Date(inputDate);
+            oneAndHalfYearDate.setFullYear(inputDate.getFullYear() + 1);
+            oneAndHalfYearDate.setMonth(inputDate.getMonth() + 6);
+            while (oneAndHalfYearDate.getDay() !== 3) {
+                oneAndHalfYearDate.setDate(oneAndHalfYearDate.getDate() + 1);
+            }
+            data.push({
+                week: '1.5 Years',
+                date: oneAndHalfYearDate.toLocaleDateString('en-GB'),
+                days: `${Math.round((oneAndHalfYearDate - inputDate) / (1000 * 60 * 60 * 24))} days`
+            });
+
+            resultsTable.innerHTML = '';
+            data.forEach(row => {
+                resultsTable.innerHTML += `<tr>
+                    <td>${row.week}</td>
+                    <td>${row.date}</td>
+                    <td>${row.days}</td>
+                </tr>`;
+            });
+
+            tableContainer.style.display = 'block';
+        }
+
+        function saveToHistory() {
+            const input = document.getElementById('manualDate').value;
+            if (!input) {
+                alert('Please enter a date first.');
+                return;
+            }
+
+            const rows = [];
+            const weekData = document.querySelector('#resultsTable tbody').children;
+            for (let i = 0; i < weekData.length; i++) {
+                const cells = weekData[i].children;
+                rows.push({
+                    week: cells[0].textContent,
+                    date: cells[1].textContent,
+                    days: cells[2].textContent
+                });
+            }
+
+            history.push({ inputDate: input, results: rows });
+            alert('Saved to history successfully!');
+            document.querySelector('.export-btn').style.display = 'inline-block';
+            document.querySelector('.clear-history-btn').style.display = 'inline-block';
+        }
+
+        function clearInput() {
+            document.getElementById('manualDate').value = '';
+            document.querySelector('.table-container').style.display = 'none';
+        }
+
+        function viewHistory() {
+            const historyContainer = document.getElementById('historyContainer');
+            const historyTableBody = document.querySelector('#historyTable tbody');
+
+            if (history.length === 0) {
+                alert('No history found!');
+                return;
+            }
+
+            historyTableBody.innerHTML = '';  // Clear any previous history data
+
+            history.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                const { inputDate, results } = entry;
+
+                const serialNo = document.createElement('td');
+                serialNo.textContent = index + 1;
+
+                const dateCell = document.createElement('td');
+                dateCell.textContent = inputDate;
+
+                // Add the calculated weeks data to the row as separate columns
+                results.forEach(result => {
+                    const resultCell = document.createElement('td');
+                    resultCell.textContent = result.date;
+                    row.appendChild(resultCell);
+                });
+
+                // Add the row to the history table
+                row.insertBefore(serialNo, row.firstChild);
+                row.insertBefore(dateCell, row.childNodes[1]);
+
+                historyTableBody.appendChild(row);
+            });
+
+            historyContainer.style.display = 'block';
+        }
+
+        function exportToExcel() {
+            const historyTable = document.getElementById('historyTable');
+            const workbook = XLSX.utils.table_to_book(historyTable, { sheet: "History" });
+
+            // Create a new sheet with data in single row format (each week as columns)
+            const newRow = [];
+            history.forEach(entry => {
+                const { inputDate, results } = entry;
+                newRow.push(inputDate);  // Add the entered date
+                results.forEach(result => {
+                    newRow.push(result.date);  // Add each calculated week date
+                });
+            });
+
+            const newSheet = XLSX.utils.aoa_to_sheet([newRow]); // Create a new sheet
+            XLSX.utils.book_append_sheet(workbook, newSheet, "Export");
+
+            // Export the Excel file
+            XLSX.writeFile(workbook, "WEDNESDAY_FINDER_History.xlsx");
+        }
+
+        function clearHistory() {
+            history = [];
+            document.getElementById('historyTable').querySelector('tbody').innerHTML = '';
+            alert('History cleared!');
+        }
+    </script>
+
+</body>
+</html>
+
